@@ -22,7 +22,7 @@ from selenium.webdriver.chrome.options import Options as ChromeOptions
 import warnings
 
 from selenium.webdriver.chromium.remote_connection import ChromiumRemoteConnection
-from selenium.webdriver.remote.webdriver import WebDriver as RemoteWebDriver
+from selenium.webdriver.remote.webdriver import ExecuteResponse, WebDriver as RemoteWebDriver
 
 DEFAULT_PORT = 0
 DEFAULT_SERVICE_LOG_PATH = None
@@ -63,7 +63,7 @@ class ChromiumDriver(RemoteWebDriver):
         if service_log_path != DEFAULT_SERVICE_LOG_PATH:
             warnings.warn('service_log_path has been deprecated, please pass in a Service object',
                           DeprecationWarning, stacklevel=2)
-        if keep_alive != DEFAULT_KEEP_ALIVE and type(self) == __class__:
+        if keep_alive != DEFAULT_KEEP_ALIVE and type(self) == ChromiumDriver:
             warnings.warn('keep_alive has been deprecated, please pass in a Service object',
                           DeprecationWarning, stacklevel=2)
         else:
@@ -188,7 +188,7 @@ class ChromiumDriver(RemoteWebDriver):
         """
         return self.execute('getIssueMessage')['value']
 
-    def set_sink_to_use(self, sink_name: str) -> dict:
+    def set_sink_to_use(self, sink_name: str) -> ExecuteResponse:
         """
         Sets a specific sink, using its name, as a Cast session receiver target.
 
@@ -197,7 +197,7 @@ class ChromiumDriver(RemoteWebDriver):
         """
         return self.execute('setSinkToUse', {'sinkName': sink_name})
 
-    def start_desktop_mirroring(self, sink_name: str) -> dict:
+    def start_desktop_mirroring(self, sink_name: str) -> ExecuteResponse:
         """
         Starts a desktop mirroring session on a specific receiver target.
 
@@ -206,7 +206,7 @@ class ChromiumDriver(RemoteWebDriver):
         """
         return self.execute('startDesktopMirroring', {'sinkName': sink_name})
 
-    def start_tab_mirroring(self, sink_name: str) -> dict:
+    def start_tab_mirroring(self, sink_name: str) -> ExecuteResponse:
         """
         Starts a tab mirroring session on a specific receiver target.
 
@@ -215,7 +215,7 @@ class ChromiumDriver(RemoteWebDriver):
         """
         return self.execute('startTabMirroring', {'sinkName': sink_name})
 
-    def stop_casting(self, sink_name: str) -> dict:
+    def stop_casting(self, sink_name: str) -> ExecuteResponse:
         """
         Stops the existing Cast session on a specific receiver target.
 

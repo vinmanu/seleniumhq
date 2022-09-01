@@ -25,13 +25,15 @@ import threading
 try:
     from urllib import request as urllib_request
 except ImportError:
-    import urllib as urllib_request
+    import urllib as urllib_request  # type: ignore [no-redef]
 try:
     from http.server import BaseHTTPRequestHandler, HTTPServer
     from socketserver import ThreadingMixIn
 except ImportError:
-    from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-    from SocketServer import ThreadingMixIn
+    from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer  # type: ignore [no-redef]
+    from SocketServer import ThreadingMixIn  # type: ignore [no-redef]
+
+from selenium.webdriver.remote.webdriver import WebDriver
 
 
 def updir():
@@ -167,6 +169,18 @@ class SimpleWebServer:
         if localhost:
             return f"http://{DEFAULT_HOST}:{self.port}/{path}"
         return f"http://{self.host}:{self.port}/{path}"
+
+
+class Pages:
+    def __init__(self, driver: WebDriver, webserver: SimpleWebServer) -> None:
+        self._driver = driver
+        self._webserver = webserver
+
+    def url(self, name: str, localhost: bool = False) -> str:
+        return self._webserver.where_is(name, localhost)
+
+    def load(self, name: str):
+        return self._driver.get(self.url(name))
 
 
 def main(argv=None):

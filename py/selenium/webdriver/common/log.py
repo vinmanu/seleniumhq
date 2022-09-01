@@ -17,6 +17,7 @@
 
 import json
 import pkgutil
+from typing import Any, AsyncIterator, Dict, cast
 
 from contextlib import asynccontextmanager
 from importlib import import_module
@@ -47,10 +48,10 @@ class Log():
         self.cdp = bidi_session.cdp
         self.devtools = bidi_session.devtools
         _pkg = '.'.join(__name__.split('.')[:-1])
-        self._mutation_listener_js = pkgutil.get_data(_pkg, 'mutation-listener.js').decode('utf8').strip()
+        self._mutation_listener_js = cast(bytes, pkgutil.get_data(_pkg, 'mutation-listener.js')).decode('utf8').strip()
 
     @asynccontextmanager
-    async def mutation_events(self) -> dict:
+    async def mutation_events(self) -> AsyncIterator[Dict[str, Any]]:
         """
         Listen for mutation events and emit them as they are found.
 
@@ -77,7 +78,7 @@ class Log():
         script_key = await page.execute(self.devtools.page.add_script_to_evaluate_on_new_document(self._mutation_listener_js))
         self.driver.pin_script(self._mutation_listener_js, script_key)
         self.driver.execute_script(f"return {self._mutation_listener_js}")
-        event = {}
+        event: Dict[str, Any] = {}
         async with runtime.wait_for(self.devtools.runtime.BindingCalled) as evnt:
             yield event
 
@@ -115,7 +116,7 @@ class Log():
         js_exception.exception_details = exception.value.exception_details
 
     @asynccontextmanager
-    async def add_listener(self, event_type) -> dict:
+    async def add_listener(self, event_type) -> AsyncIterator[Dict[str, Any]]:
         """
         Listen for certain events that are passed in.
 

@@ -16,17 +16,24 @@
 # under the License.
 
 """The WebDriver implementation."""
+
+from __future__ import annotations
+
 import contextlib
 import copy
 import pkgutil
 import types
-import typing
 import warnings
 from abc import ABCMeta
 from base64 import b64decode, urlsafe_b64encode
 from contextlib import asynccontextmanager, contextmanager
 from importlib import import_module
-from typing import Dict, List, Optional, Union
+import sys
+from typing import Any, Dict, List, Optional, TYPE_CHECKING, Type, Union, cast
+if sys.version_info >= (3, 8):
+    from typing import TypedDict
+else:
+    from typing_extensions import TypedDict
 
 from selenium.common.exceptions import (InvalidArgumentException,
                                         JavascriptException,
@@ -54,6 +61,9 @@ from .script_key import ScriptKey
 from .shadowroot import ShadowRoot
 from .switch_to import SwitchTo
 from .webelement import WebElement
+
+if TYPE_CHECKING:
+    from selenium.webdriver.common.print_page_options import _PrintOpts
 
 _W3C_CAPABILITY_NAMES = frozenset([
     'acceptInsecureCerts',
@@ -135,9 +145,9 @@ def get_remote_connection(capabilities, command_executor, keep_alive, ignore_loc
     return handler(command_executor, keep_alive=keep_alive, ignore_proxy=ignore_local_proxy)
 
 
-def create_matches(options: List[BaseOptions]) -> Dict:
-    capabilities = {"capabilities": {}}
-    opts = []
+def create_matches(options: List[BaseOptions]) -> Dict[str, Dict[str, Any]]:
+    capabilities: Dict[str, Dict[str, Any]] = {"capabilities": {}}
+    opts: List[dict] = []
     for opt in options:
         opts.append(opt.to_capabilities())
     opts_size = len(opts)
@@ -159,14 +169,20 @@ def create_matches(options: List[BaseOptions]) -> Dict:
     for k, v in samesies.items():
         always[k] = v
 
-    for i in opts:
+    for o in opts:
         for k in always.keys():
-            del i[k]
+            del o[k]
 
     capabilities["capabilities"]["alwaysMatch"] = always
     capabilities["capabilities"]["firstMatch"] = opts
 
     return capabilities
+
+
+class ExecuteResponse(TypedDict):
+    success: int
+    value: Any
+    sessionId: str
 
 
 class BaseWebDriver(metaclass=ABCMeta):
@@ -262,8 +278,8 @@ class WebDriver(BaseWebDriver):
                                                           ignore_local_proxy=_ignore_local_proxy)
         self._is_remote = True
         self.session_id = None
-        self.caps = {}
-        self.pinned_scripts = {}
+        self.caps: Dict[str, Any] = {}
+        self.pinned_scripts: Dict[str, Any] = {}
         self.error_handler = ErrorHandler()
         self._switch_to = SwitchTo(self)
         self._mobile = Mobile(self)
@@ -280,9 +296,9 @@ class WebDriver(BaseWebDriver):
         return self
 
     def __exit__(self,
-                 exc_type: typing.Optional[typing.Type[BaseException]],
-                 exc: typing.Optional[BaseException],
-                 traceback: typing.Optional[types.TracebackType]):
+                 exc_type: Optional[Type[BaseException]],
+                 exc: Optional[BaseException],
+                 traceback: Optional[types.TracebackType]):
         self.quit()
 
     @contextmanager
@@ -367,12 +383,12 @@ class WebDriver(BaseWebDriver):
         if 'sessionId' not in response:
             response = response['value']
         self.session_id = response['sessionId']
-        self.caps = response.get('value')
 
-        # if capabilities is none we are probably speaking to
-        # a W3C endpoint
-        if not self.caps:
-            self.caps = response.get('capabilities')
+        self.caps = cast(Dict[str, Any], response.get(
+            'value',
+            # if capabilities is none we are probably speaking to a W3C endpoint
+            response.get('capabilities')
+        ))
 
     def _wrap_value(self, value):
         if isinstance(value, dict):
@@ -408,7 +424,7 @@ class WebDriver(BaseWebDriver):
         else:
             return value
 
-    def execute(self, driver_command: str, params: dict = None) -> dict:
+    def execute(self, driver_command: str, params: dict = None) -> ExecuteResponse:
         """
         Sends a command to be executed by a command.CommandExecutor.
 
@@ -615,11 +631,11 @@ class WebDriver(BaseWebDriver):
         Takes PDF of the current page.
         The driver makes a best effort to return a PDF based on the provided parameters.
         """
-        options = {}
+        options: '_PrintOpts' = {}
         if print_options:
             options = print_options.to_dict()
 
-        return self.execute(Command.PRINT_PAGE, options)['value']
+        return self.execute(Command.PRINT_PAGE, cast(dict, options))['value']
 
     @property
     def switch_to(self) -> SwitchTo:
@@ -687,7 +703,7 @@ class WebDriver(BaseWebDriver):
         """
         return self.execute(Command.GET_ALL_COOKIES)['value']
 
-    def get_cookie(self, name) -> typing.Optional[typing.Dict]:
+    def get_cookie(self, name) -> Optional[ExecuteResponse]:
         """
         Get a single cookie by name. Returns the cookie if found, None if not.
 
@@ -698,6 +714,7 @@ class WebDriver(BaseWebDriver):
         """
         with contextlib.suppress(NoSuchCookieException):
             return self.execute(Command.GET_COOKIE, {"name": name})['value']
+        return None
 
     def delete_cookie(self, name) -> None:
         """
@@ -828,7 +845,7 @@ class WebDriver(BaseWebDriver):
         """
         _ = self.execute(Command.SET_TIMEOUTS, timeouts._to_json())['value']
 
-    def find_element(self, by=By.ID, value=None) -> WebElement:
+    def find_element(self, by: By | RelativeBy | str = By.ID, value=None) -> WebElement:
         """
         Find an element given a By strategy and locator.
 
@@ -842,8 +859,10 @@ class WebDriver(BaseWebDriver):
         if isinstance(by, RelativeBy):
             elements = self.find_elements(by=by, value=value)
             if not elements:
-                raise NoSuchElementException(f"Cannot locate relative element with: {by.root}")
+                raise NoSuchElementException(f"Cannot locate relative element with: {by}")
             return elements[0]
+        elif isinstance(by, str):
+            by = By.from_str(by)
 
         if by == By.ID:
             by = By.CSS_SELECTOR
@@ -856,10 +875,10 @@ class WebDriver(BaseWebDriver):
             value = '[name="%s"]' % value
 
         return self.execute(Command.FIND_ELEMENT, {
-            'using': by,
+            'using': by.value,
             'value': value})['value']
 
-    def find_elements(self, by=By.ID, value=None) -> List[WebElement]:
+    def find_elements(self, by: By | RelativeBy | str = By.ID, value=None) -> List[WebElement]:
         """
         Find elements given a By strategy and locator.
 
@@ -872,9 +891,11 @@ class WebDriver(BaseWebDriver):
         """
         if isinstance(by, RelativeBy):
             _pkg = '.'.join(__name__.split('.')[:-1])
-            raw_function = pkgutil.get_data(_pkg, 'findElements.js').decode('utf8')
+            raw_function = cast(bytes, pkgutil.get_data(_pkg, 'findElements.js')).decode('utf8')
             find_element_js = f"return ({raw_function}).apply(null, arguments);"
             return self.execute_script(find_element_js, by.to_dict())
+        elif isinstance(by, str):
+            by = By.from_str(by)
 
         if by == By.ID:
             by = By.CSS_SELECTOR
@@ -889,7 +910,7 @@ class WebDriver(BaseWebDriver):
         # Return empty list if driver returns null
         # See https://github.com/SeleniumHQ/selenium/issues/4555
         return self.execute(Command.FIND_ELEMENTS, {
-            'using': by,
+            'using': by.value,
             'value': value})['value'] or []
 
     @property
@@ -1220,10 +1241,10 @@ class WebDriver(BaseWebDriver):
         """
         Adds a virtual authenticator with the given options.
         """
-        self._authenticator_id = self.execute(Command.ADD_VIRTUAL_AUTHENTICATOR, options.to_dict())['value']
+        self._authenticator_id = self.execute(Command.ADD_VIRTUAL_AUTHENTICATOR, cast(dict, options.to_dict()))['value']
 
     @property
-    def virtual_authenticator_id(self) -> str:
+    def virtual_authenticator_id(self) -> Optional[str]:
         """
         Returns the id of the virtual authenticator.
         """
@@ -1257,7 +1278,7 @@ class WebDriver(BaseWebDriver):
         return [Credential.from_dict(credential) for credential in credential_data['value']]
 
     @required_virtual_authenticator
-    def remove_credential(self, credential_id: Union[str, bytearray]) -> None:
+    def remove_credential(self, credential_id: str | bytearray) -> None:
         """
         Removes a credential from the authenticator.
         """

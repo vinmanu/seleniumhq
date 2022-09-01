@@ -18,6 +18,8 @@
 import logging
 import socket
 import string
+from typing import Dict, Optional
+from urllib.parse import ParseResult
 
 import os
 import typing
@@ -43,8 +45,9 @@ class RemoteConnection:
     Communicates with the server using the WebDriver wire protocol:
     https://github.com/SeleniumHQ/selenium/wiki/JsonWireProtocol"""
 
-    browser_name = None
-    _timeout = socket._GLOBAL_DEFAULT_TIMEOUT
+    browser_name: Optional[str] = None
+    # this is not part of socket's public API:
+    _timeout = socket._GLOBAL_DEFAULT_TIMEOUT  # type: ignore [attr-defined]
     _ca_certs = certifi.where()
 
     @classmethod
@@ -92,7 +95,7 @@ class RemoteConnection:
         cls._ca_certs = path
 
     @classmethod
-    def get_remote_connection_headers(cls, parsed_url, keep_alive=False):
+    def get_remote_connection_headers(cls, parsed_url: ParseResult, keep_alive: bool = False) -> Dict[str, str]:
         """
         Get headers for remote request.
 

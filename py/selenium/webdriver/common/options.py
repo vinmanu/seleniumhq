@@ -14,8 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import typing
 from abc import ABCMeta, abstractmethod
+from typing import List, Optional
 
 from selenium.common.exceptions import InvalidArgumentException
 from selenium.webdriver.common.proxy import Proxy
@@ -30,7 +30,8 @@ class BaseOptions(metaclass=ABCMeta):
         super().__init__()
         self._caps = self.default_capabilities
         self.set_capability("pageLoadStrategy", "normal")
-        self.mobile_options = None
+        self.mobile_options: Optional[dict] = None
+        self._ignore_local_proxy: bool = False
 
     @property
     def capabilities(self):
@@ -134,8 +135,8 @@ class BaseOptions(metaclass=ABCMeta):
         else:
             raise ValueError("Timeout keys can only be one of the following: implicit, pageLoad, script")
 
-    def enable_mobile(self, android_package: typing.Optional[str] = None, android_activity: typing.Optional[str] = None,
-                      device_serial: typing.Optional[str] = None) -> None:
+    def enable_mobile(self, android_package: str = "", android_activity: Optional[str] = None,
+                      device_serial: Optional[str] = None) -> None:
         """
             Enables mobile browser use for browsers that support it
 
@@ -226,11 +227,9 @@ class BaseOptions(metaclass=ABCMeta):
 
 
 class ArgOptions(BaseOptions):
-
     def __init__(self) -> None:
         super().__init__()
-        self._arguments = []
-        self._ignore_local_proxy = False
+        self._arguments: List[str] = []
 
     @property
     def arguments(self):
@@ -239,7 +238,7 @@ class ArgOptions(BaseOptions):
         """
         return self._arguments
 
-    def add_argument(self, argument):
+    def add_argument(self, argument: str) -> None:
         """
         Adds an argument to the list
 

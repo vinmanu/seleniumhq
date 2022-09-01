@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from __future__ import annotations
+
 import functools
 
 from base64 import urlsafe_b64encode, urlsafe_b64decode
@@ -40,10 +42,19 @@ class Transport(Enum):
     INTERNAL = "internal"
 
 
+class VirtualAuthenticatorOptionsDict(typing.TypedDict):
+    protocol: str
+    transport: str
+    hasResidentKey: bool
+    hasUserVerification: bool
+    isUserConsenting: bool
+    isUserVerified: bool
+
+
 class VirtualAuthenticatorOptions:
 
-    Protocol = Protocol
-    Transport = Transport
+    Protocol: typing.TypeAlias = Protocol
+    Transport: typing.TypeAlias = Transport
 
     def __init__(self) -> None:
         """Constructor. Initialize VirtualAuthenticatorOptions object.
@@ -65,16 +76,16 @@ class VirtualAuthenticatorOptions:
         self._is_user_verified: bool = False
 
     @property
-    def protocol(self) -> str:
-        return self._protocol.value
+    def protocol(self) -> Protocol:
+        return self._protocol
 
     @protocol.setter
     def protocol(self, protocol: Protocol) -> None:
         self._protocol = protocol
 
     @property
-    def transport(self) -> str:
-        return self._transport.value
+    def transport(self) -> Transport:
+        return self._transport
 
     @transport.setter
     def transport(self, transport: Transport) -> None:
@@ -112,10 +123,10 @@ class VirtualAuthenticatorOptions:
     def is_user_verified(self, value: bool) -> None:
         self._is_user_verified = value
 
-    def to_dict(self) -> typing.Dict[str, typing.Any]:
+    def to_dict(self) -> VirtualAuthenticatorOptionsDict:
         return {
-            "protocol": self.protocol,
-            "transport": self.transport,
+            "protocol": self.protocol.value,
+            "transport": self.transport.value,
             "hasResidentKey": self.has_resident_key,
             "hasUserVerification": self.has_user_verification,
             "isUserConsenting": self.is_user_consenting,

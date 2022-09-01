@@ -155,6 +155,20 @@ def test_should_find_elements_by_tag_name(driver, pages):
     assert 2 == len(elements)
 
 
+def test_should_find_element_by_tag_name_with_string_by(driver, pages):
+    pages.load("nestedElements.html")
+    parent = driver.find_element("name", "div1")
+    element = parent.find_element("tag name", "a")
+    assert "link1" == element.get_attribute("name")
+
+
+def test_should_find_elements_by_tag_name_with_string_by(driver, pages):
+    pages.load("nestedElements.html")
+    parent = driver.find_element("name", "div1")
+    elements = parent.find_elements("tag name", "a")
+    assert 2 == len(elements)
+
+
 def test_should_be_able_to_find_an_element_by_css_selector(driver, pages):
     pages.load("nestedElements.html")
     parent = driver.find_element(By.NAME, "form2")

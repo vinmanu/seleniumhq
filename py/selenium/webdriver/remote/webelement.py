@@ -24,8 +24,10 @@ import warnings
 import zipfile
 from abc import ABCMeta
 from io import BytesIO
+from typing import Iterable
 
 from selenium.common.exceptions import WebDriverException, JavascriptException
+from selenium.types import AnyKey
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.utils import keys_to_typing
 from .command import Command
@@ -185,7 +187,7 @@ class WebElement(BaseWebElement):
         """Returns whether the element is enabled."""
         return self._execute(Command.IS_ELEMENT_ENABLED)['value']
 
-    def send_keys(self, *value) -> None:
+    def send_keys(self, *value: AnyKey) -> None:
         """Simulates typing into the element.
 
         :Args:
@@ -210,6 +212,9 @@ class WebElement(BaseWebElement):
         """
         # transfer file to another machine only if remote driver is used
         # the same behaviour as for java binding
+
+        output: Iterable[AnyKey] = value
+
         if self.parent._is_remote:
             local_files = list(map(lambda keys_to_send:
                                    self.parent.file_detector.is_local_file(str(keys_to_send)),
@@ -218,11 +223,11 @@ class WebElement(BaseWebElement):
                 remote_files = []
                 for file in local_files:
                     remote_files.append(self._upload(file))
-                value = '\n'.join(remote_files)
+                output = '\n'.join(remote_files)
 
         self._execute(Command.SEND_KEYS_TO_ELEMENT,
-                      {'text': "".join(keys_to_typing(value)),
-                       'value': keys_to_typing(value)})
+                      {'text': "".join(keys_to_typing(output)),
+                       'value': keys_to_typing(output)})
 
     @property
     def shadow_root(self) -> ShadowRoot:
@@ -395,7 +400,7 @@ class WebElement(BaseWebElement):
         params['id'] = self._id
         return self._parent.execute(command, params)
 
-    def find_element(self, by=By.ID, value=None) -> WebElement:
+    def find_element(self, by: By | str = By.ID, value=None) -> WebElement:
         """
         Find an element given a By strategy and locator.
 
@@ -406,6 +411,10 @@ class WebElement(BaseWebElement):
 
         :rtype: WebElement
         """
+
+        if isinstance(by, str):
+            by = By.from_str(by)
+
         if by == By.ID:
             by = By.CSS_SELECTOR
             value = '[id="%s"]' % value
@@ -417,9 +426,9 @@ class WebElement(BaseWebElement):
             value = '[name="%s"]' % value
 
         return self._execute(Command.FIND_CHILD_ELEMENT,
-                             {"using": by, "value": value})['value']
+                             {"using": by.value, "value": value})['value']
 
-    def find_elements(self, by=By.ID, value=None) -> list[WebElement]:
+    def find_elements(self, by: By | str = By.ID, value=None) -> list[WebElement]:
         """
         Find elements given a By strategy and locator.
 
@@ -430,6 +439,10 @@ class WebElement(BaseWebElement):
 
         :rtype: list of WebElement
         """
+
+        if isinstance(by, str):
+            by = By.from_str(by)
+
         if by == By.ID:
             by = By.CSS_SELECTOR
             value = '[id="%s"]' % value
@@ -441,7 +454,7 @@ class WebElement(BaseWebElement):
             value = '[name="%s"]' % value
 
         return self._execute(Command.FIND_CHILD_ELEMENTS,
-                             {"using": by, "value": value})['value']
+                             {"using": by.value, "value": value})['value']
 
     def __hash__(self):
         return int(md5_hash(self._id.encode('utf-8')).hexdigest(), 16)

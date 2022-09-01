@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from __future__ import annotations
+
 from hashlib import md5 as md5_hash
 
 from .command import Command
@@ -40,7 +42,10 @@ class ShadowRoot:
             type(self), self.session.session_id, self._id
         )
 
-    def find_element(self, by: str = By.ID, value: str = None):
+    def find_element(self, by: By | str = By.ID, value: str = None):
+        if isinstance(by, str):
+            by = By.from_str(by)
+
         if by == By.ID:
             by = By.CSS_SELECTOR
             value = '[id="%s"]' % value
@@ -52,10 +57,13 @@ class ShadowRoot:
             value = '[name="%s"]' % value
 
         return self._execute(
-            Command.FIND_ELEMENT_FROM_SHADOW_ROOT, {"using": by, "value": value}
+            Command.FIND_ELEMENT_FROM_SHADOW_ROOT, {"using": by.value, "value": value}
         )["value"]
 
-    def find_elements(self, by: str = By.ID, value: str = None):
+    def find_elements(self, by: By | str = By.ID, value: str = None):
+        if isinstance(by, str):
+            by = By.from_str(by)
+
         if by == By.ID:
             by = By.CSS_SELECTOR
             value = '[id="%s"]' % value
@@ -67,7 +75,7 @@ class ShadowRoot:
             value = '[name="%s"]' % value
 
         return self._execute(
-            Command.FIND_ELEMENTS_FROM_SHADOW_ROOT, {"using": by, "value": value}
+            Command.FIND_ELEMENTS_FROM_SHADOW_ROOT, {"using": by.value, "value": value}
         )["value"]
 
     # Private Methods

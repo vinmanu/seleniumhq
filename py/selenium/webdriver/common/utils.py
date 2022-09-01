@@ -23,7 +23,6 @@ from typing import Iterable, List, Optional, Union
 
 import socket
 from selenium.types import AnyKey
-from selenium.webdriver.common.keys import Keys
 
 
 _is_connectable_exceptions = (socket.error, ConnectionResetError)
@@ -138,9 +137,7 @@ def keys_to_typing(value: Iterable[AnyKey]) -> List[str]:
     """Processes the values that will be typed in the element."""
     typing: List[str] = []
     for val in value:
-        if isinstance(val, Keys):
-            typing.append(val)
-        elif isinstance(val, int) or isinstance(val, float):
+        if isinstance(val, int) or isinstance(val, float):
             val = str(val)
             for i in range(len(val)):
                 typing.append(val[i])

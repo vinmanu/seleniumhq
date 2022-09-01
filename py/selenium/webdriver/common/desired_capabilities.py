@@ -20,7 +20,10 @@ The Desired Capabilities implementation.
 """
 
 
-class DesiredCapabilities:
+FIREFOX_NAME = "firefox"
+
+
+class DesiredCapabilities(object):
     """
     Set of default supported desired capabilities.
 
@@ -48,7 +51,7 @@ class DesiredCapabilities:
     """
 
     FIREFOX = {
-        "browserName": "firefox",
+        "browserName": FIREFOX_NAME,
         "acceptInsecureCerts": True,
         "moz:debuggerAddress": True,
     }
