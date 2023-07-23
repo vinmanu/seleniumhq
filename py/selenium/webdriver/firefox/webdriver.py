@@ -17,6 +17,7 @@
 import base64
 import logging
 import os
+import typing
 import warnings
 import zipfile
 from contextlib import contextmanager
@@ -25,8 +26,8 @@ from io import BytesIO
 from selenium.webdriver.common.driver_finder import DriverFinder
 from selenium.webdriver.remote.webdriver import WebDriver as RemoteWebDriver
 
+from ..remote.client_config import ClientConfig
 from .options import Options
-from .remote_connection import FirefoxRemoteConnection
 from .service import Service
 
 logger = logging.getLogger(__name__)
@@ -42,15 +43,17 @@ class WebDriver(RemoteWebDriver):
         self,
         options: Options = None,
         service: Service = None,
-        keep_alive=True,
+        keep_alive: typing.Optional[bool] = None,
+        client_config: typing.Optional[ClientConfig] = None,
     ) -> None:
         """Creates a new instance of the Firefox driver. Starts the service and
         then creates new instance of Firefox driver.
 
         :Args:
-         - options - Instance of ``options.Options``.
+         - options - (Optional) Instance of ``options.Options``.
          - service - (Optional) service instance for managing the starting and stopping of the driver.
-         - keep_alive - Whether to configure remote_connection.RemoteConnection to use HTTP keep-alive.
+         - keep_alive - Deprecated: Whether to configure remote_connection.RemoteConnection to use HTTP keep-alive.
+         - client_config - configuration values for the http client
         """
 
         self.service = service if service else Service()
@@ -59,24 +62,28 @@ class WebDriver(RemoteWebDriver):
         self.service.path = DriverFinder.get_path(self.service, options)
         self.service.start()
 
-        executor = FirefoxRemoteConnection(
-            remote_server_addr=self.service.service_url,
-            ignore_proxy=options._ignore_local_proxy,
-            keep_alive=keep_alive,
-        )
-        super().__init__(command_executor=executor, options=options)
+        try:
+            super().__init__(
+                command_executor=self.service.service_url,
+                options=options,
+                keep_alive=keep_alive,
+                client_config=client_config,
+            )
+        except Exception:
+            self.quit()
+            raise
 
         self._is_remote = False
 
     def quit(self) -> None:
-        """Quits the driver and close every associated window."""
+        """Ends the driver session and shuts down the geckodriver executable."""
         try:
             super().quit()
         except Exception:
             # We don't care about the message because something probably has gone wrong
             pass
-
-        self.service.stop()
+        finally:
+            self.service.stop()
 
     def set_context(self, context) -> None:
         self.execute("SET_CONTEXT", {"context": context})
