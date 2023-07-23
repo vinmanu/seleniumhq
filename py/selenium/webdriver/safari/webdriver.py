@@ -14,8 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-import http.client as http_client
+import typing
 import warnings
 
 from selenium.common.exceptions import WebDriverException
@@ -23,8 +22,8 @@ from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.remote.webdriver import WebDriver as RemoteWebDriver
 
 from ..common.driver_finder import DriverFinder
+from ..remote.client_config import ClientConfig
 from .options import Options
-from .remote_connection import SafariRemoteConnection
 from .service import Service
 
 DEFAULT_SAFARI_CAPS = DesiredCapabilities.SAFARI.copy()
@@ -36,19 +35,21 @@ class WebDriver(RemoteWebDriver):
     def __init__(
         self,
         reuse_service=False,
-        keep_alive=True,
+        keep_alive: typing.Optional[bool] = None,
         options: Options = None,
         service: Service = None,
+        client_config: typing.Optional[ClientConfig] = None,
     ) -> None:
         """Creates a new Safari driver instance and launches or finds a running
         safaridriver service.
 
         :Args:
-         - reuse_service - If True, do not spawn a safaridriver instance; instead, connect to an already-running service that was launched externally.
-         - keep_alive - Whether to configure SafariRemoteConnection to use
-             HTTP keep-alive. Defaults to True.
+         - reuse_service - Deprecated: If True, do not spawn a safaridriver instance;
+             instead, connect to an already-running service that was launched externally.
+         - keep_alive - Deprecated: Whether to configure remote_connection.RemoteConnection to use HTTP keep-alive.
          - options - Instance of ``options.Options``.
          - service - Service object for handling the browser driver if you need to pass extra details
+         - client_config - configuration values for the http client
         """
         if reuse_service:
             warnings.warn(
@@ -66,22 +67,25 @@ class WebDriver(RemoteWebDriver):
         if not self._reuse_service:
             self.service.start()
 
-        executor = SafariRemoteConnection(
-            remote_server_addr=self.service.service_url,
-            keep_alive=keep_alive,
-            ignore_proxy=options._ignore_local_proxy,
-        )
-
-        super().__init__(command_executor=executor, options=options)
+        try:
+            super().__init__(
+                command_executor=self.service.service_url,
+                options=options,
+                keep_alive=keep_alive,
+                client_config=client_config,
+            )
+        except Exception:
+            self.quit()
+            raise
 
         self._is_remote = False
 
     def quit(self):
-        """Closes the browser and shuts down the SafariDriver executable that
-        is started when starting the SafariDriver."""
+        """Ends the driver session and shuts down the safaridriver executable if necessary."""
         try:
             super().quit()
-        except http_client.BadStatusLine:
+        except Exception:
+            # We don't care about the message because something probably has gone wrong
             pass
         finally:
             if not self._reuse_service:

@@ -16,25 +16,26 @@
 # under the License.
 import typing
 
-from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+from selenium.webdriver import DesiredCapabilities
+from selenium.webdriver.chromium.remote_connection import ChromiumRemoteConnection
 from selenium.webdriver.remote.client_config import ClientConfig
-from selenium.webdriver.remote.remote_connection import RemoteConnection
 
 
-class FirefoxRemoteConnection(RemoteConnection):
-    browser_name = DesiredCapabilities.FIREFOX["browserName"]
+class EdgeRemoteConnection(ChromiumRemoteConnection):
+    browser_name = DesiredCapabilities.EDGE["browserName"]
 
     def __init__(
         self,
-        remote_server_addr,
+        remote_server_addr: str,
         keep_alive: typing.Optional[bool] = None,
         ignore_proxy: typing.Optional[bool] = None,
         client_config: typing.Optional[ClientConfig] = None,
     ) -> None:
-        super().__init__(remote_server_addr, keep_alive, ignore_proxy=ignore_proxy, client_config=client_config)
-
-        self._commands["GET_CONTEXT"] = ("GET", "/session/$sessionId/moz/context")
-        self._commands["SET_CONTEXT"] = ("POST", "/session/$sessionId/moz/context")
-        self._commands["INSTALL_ADDON"] = ("POST", "/session/$sessionId/moz/addon/install")
-        self._commands["UNINSTALL_ADDON"] = ("POST", "/session/$sessionId/moz/addon/uninstall")
-        self._commands["FULL_PAGE_SCREENSHOT"] = ("GET", "/session/$sessionId/moz/screenshot/full")
+        super().__init__(
+            remote_server_addr=remote_server_addr,
+            vendor_prefix="goog",
+            browser_name="MicrosoftEdge",
+            keep_alive=keep_alive,
+            ignore_proxy=ignore_proxy,
+            client_config=client_config,
+        )
