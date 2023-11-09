@@ -40,11 +40,13 @@ class Service(service.ChromiumService):
         port: int = 0,
         verbose: bool = False,
         log_output: SubprocessStdAlias = None,
-        service_args: typing.Optional[typing.List[str]] = None,
+        service_args: typing.Optional[typing.Sequence[str]] = None,
         env: typing.Optional[typing.Mapping[str, str]] = None,
         **kwargs,
     ) -> None:
-        self.service_args = service_args or []
+        if service_args is None:
+            service_args = []
+        self.service_args = service_args
 
         if verbose:
             warnings.warn(
@@ -52,13 +54,22 @@ class Service(service.ChromiumService):
                 DeprecationWarning,
                 stacklevel=2,
             )
-            self.service_args.append("--verbose")
-
+            self._service_args.append("--verbose")
         super().__init__(
             executable_path=executable_path,
             port=port,
-            service_args=service_args,
+            service_args=self.service_args,
             log_output=log_output,
             env=env,
             **kwargs,
         )
+
+    @property
+    def service_args(self):
+        return self._service_args
+
+    @service_args.setter
+    def service_args(self, value):
+        if not isinstance(value, typing.Sequence):
+            raise TypeError("service args must be a sequence")
+        self._service_args = value
