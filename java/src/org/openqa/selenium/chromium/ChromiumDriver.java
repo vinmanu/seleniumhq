@@ -22,7 +22,6 @@ import static org.openqa.selenium.remote.Browser.EDGE;
 import static org.openqa.selenium.remote.Browser.OPERA;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,9 +41,6 @@ import org.openqa.selenium.PersistentCapabilities;
 import org.openqa.selenium.ScriptKey;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebDriverException;
-import org.openqa.selenium.bidi.BiDi;
-import org.openqa.selenium.bidi.BiDiException;
-import org.openqa.selenium.bidi.HasBiDi;
 import org.openqa.selenium.devtools.CdpEndpointFinder;
 import org.openqa.selenium.devtools.CdpInfo;
 import org.openqa.selenium.devtools.CdpVersionFinder;
@@ -67,7 +63,6 @@ import org.openqa.selenium.remote.FileDetector;
 import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.remote.html5.RemoteLocationContext;
 import org.openqa.selenium.remote.html5.RemoteWebStorage;
-import org.openqa.selenium.remote.http.ClientConfig;
 import org.openqa.selenium.remote.http.ConnectionFailedException;
 import org.openqa.selenium.remote.http.HttpClient;
 import org.openqa.selenium.remote.mobile.RemoteNetworkConnection;
@@ -78,7 +73,6 @@ import org.openqa.selenium.remote.mobile.RemoteNetworkConnection;
  */
 public class ChromiumDriver extends RemoteWebDriver
     implements HasAuthentication,
-        HasBiDi,
         HasCasting,
         HasCdp,
         HasDevTools,
@@ -103,8 +97,6 @@ public class ChromiumDriver extends RemoteWebDriver
   private final HasLaunchApp launch;
   private Optional<Connection> connection;
   private final Optional<DevTools> devTools;
-  private final Optional<URI> biDiUri;
-  private Optional<BiDi> biDi;
   protected HasCasting casting;
   protected HasCdp cdp;
   private final Map<Integer, ScriptKey> scriptKeys = new HashMap<>();
@@ -122,23 +114,7 @@ public class ChromiumDriver extends RemoteWebDriver
 
     HttpClient.Factory factory = HttpClient.Factory.createDefault();
     Capabilities originalCapabilities = super.getCapabilities();
-
-    Optional<String> webSocketUrl =
-        Optional.ofNullable((String) originalCapabilities.getCapability("webSocketUrl"));
-
-    this.biDiUri =
-        webSocketUrl.map(
-            uri -> {
-              try {
-                return new URI(uri);
-              } catch (URISyntaxException e) {
-                LOG.warning(e.getMessage());
-              }
-              return null;
-            });
-
-    this.biDi = createBiDi(biDiUri);
-
+    
     Optional<URI> reportedUri =
         CdpEndpointFinder.getReportedUri(capabilityKey, originalCapabilities);
     Optional<HttpClient> client =
@@ -345,17 +321,7 @@ public class ChromiumDriver extends RemoteWebDriver
   public Optional<DevTools> maybeGetDevTools() {
     return devTools;
   }
-
-  @Override
-  public Optional<BiDi> maybeGetBiDi() {
-    return biDi;
-  }
-
-  @Override
-  public void setBiDi(BiDi bidi) {
-    this.biDi = Optional.of(bidi);
-  }
-
+  
   @Override
   public List<Map<String, String>> getCastSinks() {
     return casting.getCastSinks();
