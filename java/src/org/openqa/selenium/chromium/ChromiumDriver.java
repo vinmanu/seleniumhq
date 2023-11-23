@@ -114,7 +114,7 @@ public class ChromiumDriver extends RemoteWebDriver
 
     HttpClient.Factory factory = HttpClient.Factory.createDefault();
     Capabilities originalCapabilities = super.getCapabilities();
-    
+
     Optional<URI> reportedUri =
         CdpEndpointFinder.getReportedUri(capabilityKey, originalCapabilities);
     Optional<HttpClient> client =
@@ -321,7 +321,7 @@ public class ChromiumDriver extends RemoteWebDriver
   public Optional<DevTools> maybeGetDevTools() {
     return devTools;
   }
-  
+
   @Override
   public List<Map<String, String>> getCastSinks() {
     return casting.getCastSinks();

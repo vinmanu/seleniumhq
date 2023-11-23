@@ -20,7 +20,6 @@ package org.openqa.selenium.firefox;
 import static org.openqa.selenium.remote.CapabilityType.PROXY;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
@@ -183,7 +182,7 @@ public class FirefoxDriver extends RemoteWebDriver
               + reportedUri.get(),
           e);
     }
-    
+
     this.cdpUri = cdpUri;
     this.capabilities =
         cdpUri
@@ -331,7 +330,7 @@ public class FirefoxDriver extends RemoteWebDriver
     return maybeGetDevTools()
         .orElseThrow(() -> new DevToolsException("Unable to initialize CDP connection"));
   }
-  
+
   @Override
   public void quit() {
     super.quit();
