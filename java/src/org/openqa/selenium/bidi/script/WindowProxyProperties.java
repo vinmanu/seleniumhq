@@ -14,35 +14,40 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
+package org.openqa.selenium.bidi.script;
 
-package org.openqa.selenium.firefox;
+import org.openqa.selenium.json.JsonInput;
 
-/**
- * Represents the valid values for the command context used for executing Firefox driver commands.
- */
-public enum FirefoxCommandContext {
-  CONTENT("content"),
-  CHROME("chrome");
+public class WindowProxyProperties {
 
-  private final String text;
+  private final String browsingContext;
 
-  FirefoxCommandContext(String text) {
-    this.text = text;
+  private WindowProxyProperties(String browsingContext) {
+    this.browsingContext = browsingContext;
   }
 
-  @Override
-  public String toString() {
-    return String.valueOf(text);
-  }
+  public static WindowProxyProperties fromJson(JsonInput input) {
+    String browsingContext = null;
 
-  public static FirefoxCommandContext fromString(String text) {
-    if (text != null) {
-      for (FirefoxCommandContext b : FirefoxCommandContext.values()) {
-        if (text.equalsIgnoreCase(b.text)) {
-          return b;
-        }
+    input.beginObject();
+    while (input.hasNext()) {
+      switch (input.nextName()) {
+        case "context":
+          browsingContext = input.read(String.class);
+          break;
+
+        default:
+          input.skipValue();
+          break;
       }
     }
-    return null;
+
+    input.endObject();
+
+    return new WindowProxyProperties(browsingContext);
+  }
+
+  public String getBrowsingContext() {
+    return browsingContext;
   }
 }
