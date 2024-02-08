@@ -26,7 +26,6 @@ use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::env;
 use std::fmt::Display;
-use std::ops::Deref;
 
 pub const DRIVER_PATH: &str = "Driver path: ";
 pub const BROWSER_PATH: &str = "Browser path: ";
