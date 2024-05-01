@@ -17,7 +17,6 @@
 
 package org.openqa.selenium.environment.webserver;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -51,7 +50,7 @@ class Utf8Handler implements HttpHandler {
 
       return new HttpResponse()
           .setHeader("Content-Type", "text/html; charset=UTF-8")
-          .setContent(Contents.utf8String(new String(Files.readAllBytes(target), UTF_8)));
+          .setContent(Contents.utf8String(Files.readString(target)));
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
